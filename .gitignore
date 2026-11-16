@@ -1,0 +1,18 @@
+# build output
+/build/
+*.apk
+*.idsig
+
+# signing
+/.keystore/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.iml
+
+# temp
+_run.gpx
+__pycache__/

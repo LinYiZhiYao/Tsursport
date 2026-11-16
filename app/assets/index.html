@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+<title>Tsursport</title>
+<link rel="stylesheet" href="leaflet.css" />
+<script src="leaflet.js"></script>
+<style>
+  :root{
+    --bg:#0b0d12; --bg2:#11151d; --card:rgba(20,24,33,.88); --line:rgba(255,255,255,.09);
+    --txt:#e8edf6; --sub:#8b95a7; --accent:#3ddc97; --accent2:#38a3ff; --danger:#ff6b6b;
+    --radius:22px;
+    --glass-bg:rgba(20,24,33,.62); --glass-line:rgba(255,255,255,.14);
+    --glass-txt:#f2f6ff; --glass-sub:#93a0b4;
+    --seg-bg:rgba(127,127,127,.14); --seg-on:rgba(61,220,151,.16); --seg-on-txt:#3ddc97;
+    --ghost-bg:rgba(127,127,127,.14); --ghost-line:rgba(255,255,255,.09);
+  }
+  body.light{
+    --bg:#eef1f6; --bg2:#ffffff; --card:rgba(255,255,255,.88); --line:rgba(15,20,30,.10);
+    --txt:#0d1117; --sub:#6b7688;
+    --glass-bg:rgba(255,255,255,.74); --glass-line:rgba(255,255,255,.65);
+    --glass-txt:#0d1117; --glass-sub:#5b6473;
+    --seg-bg:rgba(15,20,30,.055); --seg-on:rgba(61,220,151,.20); --seg-on-txt:#0c8f62;
+    --ghost-bg:rgba(15,20,30,.05); --ghost-line:rgba(15,20,30,.08);
+  }
+  body.light .card{backdrop-filter:blur(24px) saturate(170%);-webkit-backdrop-filter:blur(24px) saturate(170%);
+    box-shadow:0 18px 44px rgba(16,24,40,.14), inset 0 1px 0 rgba(255,255,255,.9)}
+  body.light #sheet{background:linear-gradient(180deg,rgba(238,241,246,0) 0%,var(--bg) 34%)}
+  body.light .seg button{color:#68727f}
+  body.light input[type=number]{background:#fff;border:1px solid rgba(15,20,30,.12);color:var(--txt)}
+  body.light .btn{color:#04140d}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);overflow:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC",sans-serif}
+  #map{position:absolute;inset:0}
+  .leaflet-container{background:var(--bg)}
+
+  /* ============ 顶部 ============ */
+  #top{position:absolute;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top));z-index:900;
+    display:flex;align-items:center;gap:8px;pointer-events:none}
+  .fab{pointer-events:auto;width:44px;height:44px;border-radius:50%;border:1px solid var(--glass-line);
+    background:var(--glass-bg);backdrop-filter:blur(22px) saturate(170%);
+    -webkit-backdrop-filter:blur(22px) saturate(170%);color:var(--glass-txt);font-size:18px;
+    display:flex;align-items:center;justify-content:center;font-family:inherit;font-weight:800;
+    box-shadow:0 8px 22px rgba(0,0,0,.18)}
+  .fab span{font-size:16px;letter-spacing:-.5px}
+  .chips{pointer-events:auto;display:flex;align-items:center;gap:6px;margin-left:auto}
+  .chip{display:flex;align-items:baseline;gap:3px;padding:9px 13px;border-radius:999px;
+    border:1px solid var(--glass-line);background:var(--glass-bg);
+    backdrop-filter:blur(22px) saturate(170%);-webkit-backdrop-filter:blur(22px) saturate(170%);
+    box-shadow:0 8px 22px rgba(0,0,0,.16);color:var(--glass-txt);
+    font-variant-numeric:tabular-nums}
+  .chip b{font-size:14px;font-weight:800}
+  .chip i{font-style:normal;font-size:10px;font-weight:700;color:var(--glass-sub)}
+
+
+  .logo{width:30px;height:30px;border-radius:10px;background:linear-gradient(135deg,var(--accent2),var(--accent));
+    display:flex;align-items:center;justify-content:center;font-weight:800;color:#05120c;font-size:15px;letter-spacing:-1px}
+  .brand b{font-size:16px;letter-spacing:.4px}
+  .brand small{display:block;font-size:10px;color:var(--sub);letter-spacing:2px;margin-top:1px}
+
+  .stat i{display:block;font-size:10px;color:var(--sub);font-style:normal;letter-spacing:.5px}
+  .stat b{font-size:15px;font-variant-numeric:tabular-nums}
+
+  /* ============ 底部面板 ============ */
+  #sheet{position:absolute;left:0;right:0;bottom:0;z-index:900;
+    background:linear-gradient(180deg,rgba(0,0,0,0) 0%,var(--bg) 34%);
+    padding:20px 14px calc(14px + env(safe-area-inset-bottom));
+    transition:transform .26s cubic-bezier(.2,.8,.2,1);will-change:transform}
+  #sheetGrip{position:absolute;left:0;right:0;top:-14px;height:44px;z-index:2;touch-action:none}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px;backdrop-filter:blur(20px);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .row{display:flex;align-items:center;gap:12px}
+  .row+.row{margin-top:13px}
+  .lbl{font-size:12px;color:var(--sub);min-width:44px;letter-spacing:.5px}
+  .val{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+  .val small{font-size:11px;color:var(--sub);font-weight:500;margin-left:3px}
+
+  input[type=range]{-webkit-appearance:none;flex:1;height:32px;background:transparent}
+  input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:6px;
+    background:linear-gradient(90deg,var(--accent2),var(--accent))}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;
+    background:#fff;border:4px solid var(--accent);margin-top:-10px;box-shadow:0 4px 14px rgba(0,0,0,.45)}
+  input[type=number]{width:76px;background:rgba(127,127,127,.12);border:1px solid var(--line);
+    border-radius:12px;color:var(--txt);padding:9px 6px;font-size:14px;text-align:center;font-family:inherit}
+
+  .seg{display:flex;background:var(--seg-bg);border-radius:14px;padding:4px;flex:1}
+  .seg button{flex:1;border:0;background:transparent;color:var(--sub);font-size:13px;font-weight:600;
+    padding:9px 0;border-radius:11px;font-family:inherit;transition:.15s}
+  .seg button.on{background:var(--seg-on);color:var(--seg-on-txt)}
+
+  .btns{display:flex;gap:10px;margin-top:15px}
+  .btns.main{display:grid;grid-template-columns:1fr;gap:10px}
+  .btns.sub{display:grid;grid-template-columns:1fr 1fr 64px;gap:10px;margin-top:10px}
+  .btn{border:0;border-radius:16px;padding:15px 0;font-size:16px;font-weight:700;font-family:inherit;
+    color:#04140d;background:linear-gradient(135deg,#5cf0b0,#2fc98a);
+    box-shadow:0 10px 26px rgba(47,201,138,.3);flex:1;transition:.15s}
+  .btn:active{transform:scale(.985)}
+  .btn.ghost{background:var(--ghost-bg);color:var(--txt);box-shadow:none;border:1px solid var(--ghost-line);flex:0 0 78px}
+  .btn.icon{flex:0 0 56px;font-size:18px;padding:15px 0}
+  .btn:disabled{opacity:.4;box-shadow:none}
+  .btn.stop{background:linear-gradient(135deg,#ff8b8b,#e04b4b);color:#fff}
+  .btn.pause{background:linear-gradient(135deg,#ffd479,#f0a92a);color:#1a1200}
+
+  #tips{margin-top:11px;font-size:11.5px;color:var(--sub);text-align:center;line-height:1.6}
+
+  /* ============ 设置弹层 ============ */
+  #aboutPage{position:fixed;inset:0;z-index:2200;display:none;background:var(--bg2);
+    padding:calc(16px + env(safe-area-inset-top)) 18px calc(22px + env(safe-area-inset-bottom));
+    overflow:auto}
+  #aboutPage.show{display:block;animation:pageIn .26s cubic-bezier(.2,.8,.2,1)}
+  @keyframes pageIn{from{transform:translateY(18px) scale(.985);opacity:0}to{transform:none;opacity:1}}
+  #aboutPage.show{display:block}
+  #modal{position:fixed;inset:0;z-index:1200;display:none;background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
+  #modal.show{display:block}
+  #panel{position:absolute;left:0;right:0;bottom:0;background:var(--bg2);border-radius:26px 26px 0 0;
+    padding:18px 18px calc(20px + env(safe-area-inset-bottom));max-height:84%;overflow:auto;
+    animation:up .24s cubic-bezier(.2,.8,.2,1);transition:transform .24s ease}
+  #panelDrag{display:flex;justify-content:center;padding:2px 0 12px;touch-action:none}
+  #panelDrag span{width:44px;height:4px;border-radius:4px;background:rgba(127,127,127,.4)}
+  @keyframes up{from{transform:translateY(30px);opacity:.5}to{transform:none;opacity:1}}
+  #panel h3{margin:0 0 16px;font-size:17px;display:flex;align-items:center;gap:8px}
+  #panel h3 span{font-size:11px;color:var(--sub);font-weight:400;margin-left:auto}
+  .set{margin:14px 0}
+  .set .t{font-size:12px;color:var(--sub);margin-bottom:8px}
+  .about{background:rgba(127,127,127,.1);border-radius:18px;padding:14px 16px;margin-top:18px;line-height:1.8;font-size:12.5px;color:var(--sub)}
+  .about b{color:var(--txt)}
+  .sig{font-size:15px;letter-spacing:2px;color:var(--accent);font-weight:700;margin-top:6px}
+
+
+  /* ===== 使用须知（整页） ===== */
+  #notice{position:fixed;left:0;right:0;bottom:0;z-index:2600;display:none;background:var(--bg2);
+    border-radius:26px 26px 0 0;max-height:88%;
+    padding:18px 18px calc(22px + env(safe-area-inset-bottom));
+    overflow:auto;animation:up .22s ease;box-shadow:0 -18px 60px rgba(0,0,0,.6)}
+  #notice.show{display:block}
+  #noticeBack{position:fixed;inset:0;z-index:2550;display:none;background:rgba(0,0,0,.55)}
+  #noticeBack.show{display:block}
+  #notice h2{margin:0 0 4px;font-size:19px;font-weight:800}
+  #notice .sub{font-size:11.5px;color:var(--sub);margin-bottom:14px;letter-spacing:.5px}
+  #notice ol{margin:0;padding-left:20px;font-size:13px;line-height:1.95;color:var(--txt)}
+  #notice ol b{color:var(--accent)}
+  #notice .foot{margin-top:16px;background:rgba(127,127,127,.1);border-radius:16px;padding:14px 16px;
+    font-size:12px;color:var(--sub);line-height:1.8}
+  #notice .sig{font-size:15px;letter-spacing:2px;color:var(--accent);font-weight:700;margin-top:6px}
+  #notice .bar{display:flex;gap:10px;margin-top:16px}
+
+  /* ===== 首次启动欢迎弹窗 ===== */
+  #welcome{position:fixed;inset:0;z-index:2800;display:none;background:rgba(12,16,24,.45);backdrop-filter:blur(6px)}
+  #welcome.show{display:flex;align-items:center;justify-content:center;padding:24px}
+  #wBox{width:100%;max-width:520px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);
+    border-radius:24px;padding:26px 22px 20px;box-shadow:0 26px 70px rgba(0,0,0,.45);
+    animation:pop .24s cubic-bezier(.2,.9,.3,1.2)}
+  @keyframes pop{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
+  #wBox .top{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  #wBox .top .logo{width:44px;height:44px;border-radius:14px;font-size:20px}
+  #wBox h2{margin:0;font-size:19px;font-weight:800;color:var(--txt)}
+  #wBox .sub{font-size:11px;color:var(--sub);letter-spacing:1.6px;margin-top:2px}
+  #wBox ul{margin:0;padding-left:18px;font-size:13px;line-height:1.95;color:var(--txt)}
+  #wBox ul b{color:var(--accent);font-weight:700}
+  body.light #wBox ul b{color:#0c8f62}
+  #wBox .note{margin-top:12px;font-size:11.5px;color:var(--sub);line-height:1.7}
+  #wBox .go{margin-top:16px;width:100%;border:0;border-radius:16px;padding:15px 0;font-size:16px;
+    font-weight:700;font-family:inherit;color:#04140d;background:linear-gradient(135deg,#5cf0b0,#2fc98a);
+    box-shadow:0 10px 26px rgba(47,201,138,.3)}
+
+
+  /* 夜间地图：只对瓦片层做暗化，主题不受影响 */
+  #map.map-dark .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.86) contrast(1.05) saturate(.85)}
+</style>
+</head>
+<body class="light">
+<div id="welcome">
+  <div id="wBox">
+    <div class="top">
+      <div class="logo">T</div>
+      <div>
+        <h2>欢迎使用 Tsursport</h2>
+        <div class="sub">ROUTE SIMULATOR · v2.1</div>
+      </div>
+    </div>
+    <ul>
+      <li>到 <b>开发者选项 → 选择模拟位置信息应用</b> 里选中 <b>Tsursport</b></li>
+      <li>应用信息 → 电池 → <b>不受限制</b>，建议<b>关闭 WiFi</b> 用移动数据</li>
+      <li>步频选 <b>跟随步频</b>，步幅 = 身高cm × 0.45，人要真的在动</li>
+    </ul>
+    <div class="note">完整 11 条说明在 设置 → 关于 → 使用须知 里随时可看。</div>
+    <button class="go" id="welcomeOk">我知道了，开始使用</button>
+  </div>
+</div>
+
+<div id="map"></div>
+
+<div id="top">
+  <button class="fab" id="brandFab"><span>T</span></button>
+  <div class="chips">
+    <div class="chip"><b id="dist">0</b><i>m</i></div>
+    <div class="chip"><b id="time">00:00</b></div>
+    <div class="chip"><b id="cad">-</b><i>spm</i></div>
+  </div>
+  <button class="fab" id="locFab">◎</button>
+</div>
+
+<div id="sheet">
+  <div id="sheetGrip"></div>
+  <div class="card">
+    <div class="row">
+      <div class="lbl">速度</div>
+      <input id="speed" type="range" min="10" max="150" step="1" value="26" />
+      <div class="val" id="speedTxt">2.6<small>m/s</small></div>
+    </div>
+    <div class="row">
+      <div class="lbl">配速</div>
+      <div class="val" id="paceTxt">6'25"<small>/km</small></div>
+      <div style="margin-left:auto;font-size:12px;color:var(--sub)" id="ptCount">路线点 0 / 2</div>
+    </div>
+    <div id="coordLine" style="margin:2px 0 10px;font-size:11px;color:var(--sub);
+         font-variant-numeric:tabular-nums;letter-spacing:.2px">坐标：未取点</div>
+    <div class="row">
+      <div class="lbl">步频</div>
+      <div class="seg" id="cadSeg">
+        <button data-cad="off" class="on">固定速度</button>
+        <button data-cad="on">跟随步频</button>
+      </div>
+      <input id="stride" type="number" step="0.05" min="0.5" max="1.6" value="1.05" />
+    </div>
+    <div class="row">
+      <div class="lbl">循环</div>
+      <div class="seg" id="loopSeg">
+        <button data-mode="pingpong" class="on">往返</button>
+        <button data-mode="circle">环形</button>
+      </div>
+    </div>
+    <div class="btns main">
+      <button class="btn" id="startBtn">开始模拟</button>
+    </div>
+    <div class="btns sub">
+      <button class="btn ghost" id="undoBtn">撤销</button>
+      <button class="btn ghost" id="clearBtn">清空</button>
+      <button class="btn ghost" id="setBtn">⚙</button>
+    </div>
+  </div>
+</div>
+
+<div id="aboutPage">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+    <button id="aboutBack" class="btn ghost" style="flex:0 0 44px;padding:10px 0;font-size:16px">‹</button>
+    <div style="font-size:18px;font-weight:700">关于</div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:12px;margin:6px 0 14px">
+    <div class="logo" style="width:46px;height:46px;font-size:20px;border-radius:14px">T</div>
+    <div>
+      <div style="font-size:17px;font-weight:800">Tsursport</div>
+      <div style="font-size:11px;color:var(--sub);letter-spacing:1.5px">ROUTE SIMULATOR · v2.1 (21)</div>
+    </div>
+  </div>
+
+  <div style="background:rgba(127,127,127,.1);border-radius:16px;padding:14px 16px;font-size:12.5px;
+       line-height:2;color:var(--sub)">
+    包名：<b style="color:var(--txt)">com.tsursport</b><br>
+    开发者：<b style="color:var(--txt)">林忆知遥</b><br>
+    用途：自有设备上的定位 / 运动数据调试与演示
+    <div class="sig">林忆知遥</div>
+  </div>
+
+  <div style="font-size:14px;font-weight:700;margin:18px 0 10px">使用须知</div>
+  <ol style="margin:0;padding-left:18px;font-size:12.5px;line-height:1.95;color:var(--txt)">
+    <li><b>必须选中本应用</b>：设置 → 开发者选项 → 选择模拟位置信息应用 → <b>Tsursport</b>。换版本或重启后可能被清空，每次跑前确认。</li>
+    <li><b>电池设为不受限制</b>：应用信息 → 电池 → 不受限制；关闭「深度休眠」「自动优化」，否则后台服务被停，位置会跳回真实值。</li>
+    <li><b>建议关闭 WiFi</b>：地图/定位 SDK 会用 WiFi 指纹反查真实位置，用移动数据更稳。</li>
+    <li><b>定位总开关保持高精度</b>，并允许本应用「身体活动」权限，否则读不到步频。</li>
+    <li><b>先强停目标 App</b>（如支付宝）→ 开 Tsursport 开始模拟 → 再打开目标 App，避免它沿用缓存定位。</li>
+    <li><b>步频用「跟随步频」</b>：步幅 = 身高cm × 0.45。走路 100–130 spm、慢跑 150–175 spm，配速自然落在 5'30"–8'00"。</li>
+    <li><b>人必须真的在动</b>：静止时步频为 0，会被判定「配速异常 / 无运动」。</li>
+    <li><b>路线别是完美直线</b>：多点、有拐弯；速度已带 ±8% 自然抖动。</li>
+    <li><b>留在电子围栏内</b>，出圈里程不计；时段按学校规定（多为 6:00–22:00）。</li>
+    <li><b>不要一台设备切多账号</b>，平台按作弊处理。</li>
+    <li><b>技术边界</b>：位置可伪造，<b>isMock 标记、WiFi/基站、卫星、步频读数、设备指纹</b> 免 root 改不了；平台若深度校验仍可能判无效，且会回溯复核历史记录。</li>
+  </ol>
+</div>
+
+<div id="modal">
+  <div id="panel">
+    <div id="panelDrag"><span></span></div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <button id="backBtn" style="border:1px solid var(--line);background:rgba(127,127,127,.12);color:var(--txt);
+        border-radius:12px;width:40px;height:36px;font-size:16px;font-family:inherit">‹</button>
+      <div style="font-size:18px;font-weight:700">设置</div>
+      <div style="margin-left:auto;font-size:11px;color:var(--sub)">Tsursport v2.1</div>
+    </div>
+
+    <div class="set">
+      <div class="t">定位真实度（影响精度波动、速度抖动）</div>
+      <div class="seg" id="realSeg">
+        <button data-r="0">稳定</button>
+        <button data-r="1" class="on">标准</button>
+        <button data-r="2">高仿真</button>
+      </div>
+    </div>
+
+    <div class="set">
+      <div class="t">卫星数据（satellites / CN0，风控常查）</div>
+      <div class="seg" id="satSeg">
+        <button data-s="0">关闭</button>
+        <button data-s="1" class="on">模拟卫星</button>
+      </div>
+    </div>
+
+    <div class="set">
+      <div class="t">速度抖动</div>
+      <div class="seg" id="jitSeg">
+        <button data-j="0">匀速</button>
+        <button data-j="1" class="on">自然抖动</button>
+      </div>
+    </div>
+
+    <div class="set">
+      <div class="t">界面主题</div>
+      <div class="seg" id="themeSeg">
+        <button data-t="dark" class="on">深色</button>
+        <button data-t="light">浅色</button>
+      </div>
+    </div>
+
+    <div class="set">
+      <div class="t">坐标对齐百度（坐标系换算成 BD-09，方便和百度地图核对）</div>
+      <div class="seg" id="baiduSeg">
+        <button data-b="0" class="on">关闭</button>
+        <button data-b="1">对齐百度</button>
+      </div>
+    </div>
+
+    <div class="set">
+      <div class="t">地图样式</div>
+      <div class="seg" id="mapSeg">
+        <button data-m="std" class="on">标准</button>
+        <button data-m="dark">夜间</button>
+        <button data-m="sat">卫星</button>
+      </div>
+    </div>
+
+    <div class="set">
+      <div class="t">路线来源</div>
+      <div class="btns" style="margin-top:0">
+        <button class="btn ghost" id="gpxBtn" style="flex:1">从 GPX 文件导入</button>
+      </div>
+      <input id="gpxFile" type="file" accept=".gpx,text/xml,application/gpx+xml" style="display:none" />
+    </div>
+
+    <div class="set">
+      <div class="t">悬浮球（在其他应用上层遥控，需授权）</div>
+      <div class="seg" id="ballSeg">
+        <button data-b="0" class="on">关闭</button>
+        <button data-b="1">开启悬浮球</button>
+      </div>
+    </div>
+
+    <div class="set">
+      <div class="t">跑完自动导出轨迹图</div>
+      <div class="seg" id="expSeg">
+        <button data-e="0">关闭</button>
+        <button data-e="1" class="on">保存 PNG</button>
+      </div>
+    </div>
+
+    <div class="set">
+      <div class="t">路线记忆</div>
+      <div class="seg" id="saveSeg">
+        <button data-v="0">不保存</button>
+        <button data-v="1" class="on">自动保存上次路线</button>
+      </div>
+    </div>
+
+        <div style="display:flex;justify-content:center;margin:22px 0 4px">
+      <button id="aboutBtn" style="background:none;border:0;padding:8px 12px;color:var(--sub);
+        font-family:inherit;font-size:12.5px;letter-spacing:.5px">
+        关于 Tsursport ›
+      </button>
+    </div>
+</div>
+
+  </div>
+</div>
+
+<script>
+window.onerror = function(m, u, l){ console.log('JSERR ' + m + ' @line ' + l); };
+const CAMPUS = [39.261826, 117.355648];
+const map = L.map('map', {zoomControl:false, attributionControl:false}).setView(CAMPUS, 16);
+const TILES = {
+  std:  ['https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', '1234', 19],
+  dark: ['https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', '1234', 19],
+  sat:  ['https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}', '1234', 18]
+};
+let tileLayer = null, mapMode = 'std';
+function setMapMode(mode){
+  mapMode = TILES[mode] ? mode : 'std';
+  if (tileLayer) map.removeLayer(tileLayer);
+  const [url, sub, maxZ] = TILES[mapMode];
+  tileLayer = L.tileLayer(url, {subdomains: sub, maxZoom: maxZ}).addTo(map);
+  tileLayer.bringToBack();
+  document.getElementById('map').classList.toggle('map-dark', mapMode === 'dark');
+  localStorage.setItem('tsursport.map', mapMode);
+  document.querySelectorAll('#mapSeg button').forEach(b => b.classList.toggle('on', b.dataset.m === mapMode));
+}
+setMapMode(localStorage.getItem('tsursport.map') || 'std');
+
+let points = [];
+let running = false;
+let uiPaused = false;
+let loopMode = 'pingpong';
+let cadenceFollow = false;
+let realism = 1, satOn = true, jitterOn = true;
+let lastClickTs = 0, lastPt = null;
+let startedAt = 0;
+
+const routeLayer = L.layerGroup().addTo(map);
+const poly = L.polyline([], {color:'#3ddc97', weight:5, opacity:.95}).addTo(map);
+const closeLine = L.polyline([], {color:'#3ddc97', weight:3, opacity:.6, dashArray:'8 8'}).addTo(map);
+const me = L.circleMarker(CAMPUS, {radius:7, color:'#38a3ff', weight:3, fillColor:'#38a3ff',
+  fillOpacity:0, opacity:0}).addTo(map);
+
+
+/* ---------- GCJ-02 ↔ WGS-84 ---------- */
+const PI_ = Math.PI, AXIS = 6378245.0, EE = 0.00669342162296594323;
+function outOfChina(lat, lng){
+  return lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271;
+}
+function tLat(x, y){
+  let r = -100 + 2*x + 3*y + 0.2*y*y + 0.1*x*y + 0.2*Math.sqrt(Math.abs(x));
+  r += (20*Math.sin(6*x*PI_) + 20*Math.sin(2*x*PI_)) * 2/3;
+  r += (20*Math.sin(y*PI_) + 40*Math.sin(y/3*PI_)) * 2/3;
+  r += (160*Math.sin(y/12*PI_) + 320*Math.sin(y*PI_/30)) * 2/3;
+  return r;
+}
+function tLng(x, y){
+  let r = 300 + x + 2*y + 0.1*x*x + 0.1*x*y + 0.1*Math.sqrt(Math.abs(x));
+  r += (20*Math.sin(6*x*PI_) + 20*Math.sin(2*x*PI_)) * 2/3;
+  r += (20*Math.sin(x*PI_) + 40*Math.sin(x/3*PI_)) * 2/3;
+  r += (150*Math.sin(x/12*PI_) + 300*Math.sin(x/30*PI_)) * 2/3;
+  return r;
+}
+function gcjToWgs(lat, lng){
+  if (outOfChina(lat, lng)) return [lat, lng];
+  let dLat = tLat(lng - 105, lat - 35), dLng = tLng(lng - 105, lat - 35);
+  const radLat = lat / 180 * PI_;
+  let magic = Math.sin(radLat); magic = 1 - EE * magic * magic;
+  const sqrtMagic = Math.sqrt(magic);
+  dLat = (dLat * 180) / ((AXIS * (1 - EE)) / (magic * sqrtMagic) * PI_);
+  dLng = (dLng * 180) / (AXIS / sqrtMagic * Math.cos(radLat) * PI_);
+  return [lat - dLat, lng - dLng];
+}
+function wgsToGcj(lat, lng){
+  if (outOfChina(lat, lng)) return [lat, lng];
+  let dLat = tLat(lng - 105, lat - 35), dLng = tLng(lng - 105, lat - 35);
+  const radLat = lat / 180 * PI_;
+  let magic = Math.sin(radLat); magic = 1 - EE * magic * magic;
+  const sqrtMagic = Math.sqrt(magic);
+  dLat = (dLat * 180) / ((AXIS * (1 - EE)) / (magic * sqrtMagic) * PI_);
+  dLng = (dLng * 180) / (AXIS / sqrtMagic * Math.cos(radLat) * PI_);
+  return [lat + dLat, lng + dLng];
+}
+
+
+/* ---------- GCJ-02 ↔ BD-09 ---------- */
+const BD_X_PI = Math.PI * 3000.0 / 180.0;
+function gcjToBd(lat, lng){
+  const z = Math.sqrt(lng*lng + lat*lat) + 0.00002 * Math.sin(lat * BD_X_PI);
+  const t = Math.atan2(lat, lng) + 0.000003 * Math.cos(lng * BD_X_PI);
+  return [z * Math.sin(t) + 0.006, z * Math.cos(t) + 0.0065];
+}
+function bdToGcj(lat, lng){
+  const x = lng - 0.0065, y = lat - 0.006;
+  const z = Math.sqrt(x*x + y*y) - 0.00002 * Math.sin(y * BD_X_PI);
+  const t = Math.atan2(y, x) - 0.000003 * Math.cos(x * BD_X_PI);
+  return [z * Math.sin(t), z * Math.cos(t)];
+}
+
+const $ = id => document.getElementById(id);
+function on(id, ev, fn){ const el = $(id); if (el) el.addEventListener(ev, fn); }
+function showHint(msg){
+  try { if (window.Android && Android.toast) Android.toast(msg); } catch (e) {}
+}
+
+/* ---------- 路线绘制 ---------- */
+function redraw(){
+  poly.setLatLngs(points);
+  if (loopMode === 'circle' && points.length >= 3) {
+    closeLine.setLatLngs([points[points.length-1], points[0]]);
+  } else {
+    closeLine.setLatLngs([]);
+  }
+  routeLayer.clearLayers();
+  points.forEach((p, i) => {
+    const dot = L.circleMarker(p, {
+      radius: 7, color:'#fff', weight:2, interactive:false,
+      fillColor: i === 0 ? '#3ddc97' : '#38a3ff', fillOpacity: 1
+    });
+    dot.bindTooltip('第 ' + (i+1) + ' 点', {direction:'top', offset:[0,-6]});
+    routeLayer.addLayer(dot);
+    if (i === 0) routeLayer.addLayer(L.circleMarker(p, {
+      radius: 13, color:'#3ddc97', weight:2, opacity:.5, fillOpacity:0, interactive:false
+    }));
+  });
+  $('ptCount').textContent = '路线点 ' + points.length + ' / 2';
+  pushRouteToNative();
+  $('startBtn').disabled = points.length < 2 && !running;
+  $('undoBtn').disabled = running || points.length === 0;
+  $('clearBtn').disabled = running || points.length === 0;
+  const showMe = running;
+  me.setStyle({opacity: showMe ? 1 : 0, fillOpacity: showMe ? .9 : 0});
+  if (saveRoute) localStorage.setItem('tsursport.route', JSON.stringify(points));
+}
+
+map.on('click', e => {
+  if (running) return;
+  const now = Date.now();
+  if (lastPt && now - lastClickTs < 700 && map.distance(lastPt, e.latlng) < 25) return;
+  lastPt = e.latlng; lastClickTs = now;
+  points.push([e.latlng.lat, e.latlng.lng]);
+  redraw();
+  updateCoordLine();
+});
+
+/* ---------- 速度 / 配速 ---------- */
+const speedEl = $('speed');
+function updateSpeed(){
+  const v = speedEl.value / 10;
+  $('speedTxt').innerHTML = v.toFixed(1) + '<small>m/s</small>';
+  const sec = 1000 / v;
+  $('paceTxt').innerHTML = Math.floor(sec/60) + "'" + String(Math.round(sec%60)).padStart(2,'0') + '"<small>/km</small>';
+}
+speedEl.addEventListener('input', () => { updateSpeed(); pushRouteToNative(); });
+updateSpeed();
+
+/* ---------- 分段控件 ---------- */
+function bindSeg(id, attr, cb){
+  document.querySelectorAll('#' + id + ' button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#' + id + ' button').forEach(x => x.classList.toggle('on', x === b));
+      cb(b.dataset[attr]);
+      redraw();
+    });
+  });
+}
+bindSeg('loopSeg','mode', v => { loopMode = v; pushRouteToNative(); });
+bindSeg('cadSeg','cad', v => { cadenceFollow = v === 'on'; pushCadence(); pushRouteToNative(); });
+bindSeg('mapSeg','m', v => setMapMode(v));
+bindSeg('baiduSeg','b', v => {
+  alignBaidu = v === '1';
+  localStorage.setItem('tsursport.baidu', alignBaidu ? '1' : '0');
+  updateCoordLine();
+});
+bindSeg('realSeg','r', v => { realism = +v; pushRealism(); });
+bindSeg('satSeg','s', v => { satOn = v === '1'; pushRealism(); });
+bindSeg('jitSeg','j', v => { jitterOn = v === '1'; pushRealism(); });
+bindSeg('themeSeg','t', v => {
+  document.body.classList.toggle('light', v === 'light');
+  localStorage.setItem('tsursport.theme', v);
+  if (window.Android && Android.setTheme) Android.setTheme(v);
+});
+bindSeg('saveSeg','v', v => {
+  saveRoute = v === '1';
+  localStorage.setItem('tsursport.save', saveRoute ? '1' : '0');
+});
+bindSeg('ballSeg','b', v => {
+  ballOn = v === '1';
+  if (window.Android) {
+    if (ballOn && Android.showBall) Android.showBall();
+    if (!ballOn && Android.hideBall) Android.hideBall();
+  }
+});
+bindSeg('expSeg','e', v => { autoExport = v === '1'; });
+
+/* ---------- GPX 导入 ---------- */
+$('gpxBtn').addEventListener('click', () => $('gpxFile').click());
+$('gpxFile').addEventListener('change', ev => {
+  const f = ev.target.files && ev.target.files[0];
+  if (!f) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      const xml = new DOMParser().parseFromString(String(fr.result), 'text/xml');
+      const pts = Array.from(xml.getElementsByTagName('trkpt')).map(n => [
+        parseFloat(n.getAttribute('lat')), parseFloat(n.getAttribute('lon'))
+      ]).filter(p => !isNaN(p[0]) && !isNaN(p[1]));
+      const wpts = pts.length ? pts : Array.from(xml.getElementsByTagName('rtept')).map(n => [
+        parseFloat(n.getAttribute('lat')), parseFloat(n.getAttribute('lon'))
+      ]).filter(p => !isNaN(p[0]) && !isNaN(p[1]));
+      if (!wpts.length) { showHint('这个 GPX 里没读到 trkpt / rtept 坐标'); return; }
+      // 抽稀：最多保留 60 个点，避免路线过密
+      const step = Math.max(1, Math.floor(wpts.length / 60));
+      points = wpts.filter((_, i) => i % step === 0).map(p => {
+        const g = wgsToGcj(p[0], p[1]);
+        return [g[0], g[1]];
+      });
+      if (points.length < 2) points = wpts.slice(0, 2);
+      redraw();
+      if (points.length) map.fitBounds(L.latLngBounds(points), {padding:[40,120]});
+      $('modal').classList.remove('show');
+      if (window.Android && Android.toast) Android.toast('已导入 ' + points.length + ' 个路线点');
+      showHint('已导入 ' + points.length + ' 个路线点');
+    } catch (e) { showHint('GPX 解析失败：' + e.message); }
+  };
+  fr.readAsText(f);
+});
+
+let saveRoute = true;
+let autoExport = true;
+let ballOn = false;
+let alignBaidu = false;
+let lastStats = {dist:0, sec:0, pace:'-', pts:0};
+
+
+/* 把当前路线同步给原生，悬浮窗才能直接开始 */
+function pushRouteToNative(){
+  try {
+    if (!window.Android || !Android.saveRoute) return;
+    if (points.length < 2) return;
+    const wgs = points.map(p => { const w = gcjToWgs(p[0], p[1]); return [w[0], w[1]]; });
+    Android.saveRoute(JSON.stringify(wgs), speedEl.value / 10, loopMode,
+                      parseFloat($('stride').value) || 1.05, cadenceFollow);
+  } catch (e) {}
+}
+
+/* ---------- 坐标显示 ---------- */
+function fmtCoord(lat, lng){
+  let la = lat, ln = lng;
+  if (alignBaidu) { const b = gcjToBd(lat, lng); la = b[0]; ln = b[1]; }
+  return la.toFixed(6) + ', ' + ln.toFixed(6) + (alignBaidu ? '  BD-09' : '  GCJ-02');
+}
+function updateCoordLine(){
+  const el = $('coordLine');
+  if (!el) return;
+  if (running && me.getLatLng()) {
+    const p = me.getLatLng();
+    el.textContent = '当前位置：' + fmtCoord(p.lat, p.lng);
+  } else if (points.length) {
+    const p = points[points.length - 1];
+    el.textContent = '最后取点：' + fmtCoord(p[0], p[1]);
+  } else {
+    el.textContent = '坐标：未取点';
+  }
+}
+
+/* ---------- 桥接 ---------- */
+function pushCadence(){
+  if (window.Android && Android.setCadenceMode)
+    Android.setCadenceMode(cadenceFollow, parseFloat($('stride').value) || 1.05);
+}
+function pushRealism(){
+  if (window.Android && Android.setRealism)
+    Android.setRealism(realism, jitterOn, satOn);
+}
+$('stride').addEventListener('change', pushCadence);
+
+/* ---------- 开始 / 暂停 / 停止 ---------- */
+function paintRunButton(){
+  const b = $('startBtn');
+  if (!b) return;
+  b.classList.remove('stop', 'pause');
+  if (!running) { b.textContent = '开始模拟'; b.disabled = points.length < 2; }
+  else if (uiPaused) { b.textContent = '已暂停 · 点此继续'; b.classList.add('pause'); b.disabled = false; }
+  else { b.textContent = '停止'; b.classList.add('stop'); b.disabled = false; }
+}
+function startRun(){
+  if (points.length < 2) return;
+  pushCadence(); pushRealism();
+  let ok = true;
+  if (window.Android && Android.start) {
+    const wgsPoints = points.map(p => {
+      const w = gcjToWgs(p[0], p[1]);
+      return [w[0], w[1]];
+    });
+    ok = Android.start(JSON.stringify(wgsPoints), speedEl.value/10, loopMode);
+  }
+  if (ok === false) {
+    if (window.Android && Android.toast) Android.toast('还没把 Tsursport 设为模拟位置信息应用，所以没有开始');
+    showHint('还没把 Tsursport 设为「模拟位置信息应用」→ 设置 · 开发者选项 · 选择模拟位置信息应用');
+    return;
+  }
+  running = true;
+  uiPaused = false;
+  startedAt = Date.now();
+  paintRunButton();
+  redraw();
+}
+function exportTrack(){
+  if (!autoExport || !points.length) return;
+  try {
+    const W = 1080, H = 1350, pad = 90;
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const x = c.getContext('2d');
+    const bg = x.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#0b0d12'); bg.addColorStop(1, '#132030');
+    x.fillStyle = bg; x.fillRect(0, 0, W, H);
+
+    x.fillStyle = '#3ddc97'; x.font = 'bold 54px -apple-system, sans-serif';
+    x.fillText('Tsursport', pad, pad + 40);
+    x.fillStyle = 'rgba(255,255,255,.45)'; x.font = '24px sans-serif';
+    x.fillText('ROUTE RECORD', pad, pad + 82);
+
+    // 轨迹缩放
+    const lats = points.map(p => p[0]), lngs = points.map(p => p[1]);
+    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+    const w = W - pad * 2, h = H - pad * 2 - 520;
+    const spanLat = Math.max(1e-6, maxLat - minLat), spanLng = Math.max(1e-6, maxLng - minLng);
+    const scale = Math.min(w / spanLng, h / spanLat);
+    const cx = pad + (w - spanLng * scale) / 2, cy = pad + 160 + (h - spanLat * scale) / 2;
+    const px = p => cx + (p[1] - minLng) * scale;
+    const py = p => cy + (maxLat - p[0]) * scale;
+
+    x.strokeStyle = 'rgba(61,220,151,.25)'; x.lineWidth = 22; x.lineJoin = 'round';
+    x.beginPath(); points.forEach((p, i) => i ? x.lineTo(px(p), py(p)) : x.moveTo(px(p), py(p))); x.stroke();
+    x.strokeStyle = '#3ddc97'; x.lineWidth = 8;
+    x.beginPath(); points.forEach((p, i) => i ? x.lineTo(px(p), py(p)) : x.moveTo(px(p), py(p))); x.stroke();
+    [points[0], points[points.length-1]].forEach((p, i) => {
+      x.fillStyle = i ? '#ff6b6b' : '#38a3ff';
+      x.beginPath(); x.arc(px(p), py(p), 14, 0, 7); x.fill();
+      x.strokeStyle = '#fff'; x.lineWidth = 4; x.stroke();
+    });
+
+    // 统计
+    const y0 = H - 420;
+    x.strokeStyle = 'rgba(255,255,255,.1)'; x.lineWidth = 2;
+    x.beginPath(); x.moveTo(pad, y0); x.lineTo(W - pad, y0); x.stroke();
+    const km = (lastStats.dist / 1000).toFixed(2);
+    const mm = String(Math.floor(lastStats.sec / 60)).padStart(2, '0');
+    const ss = String(lastStats.sec % 60).padStart(2, '0');
+    const items = [
+      ['里程', km + ' km'],
+      ['用时', mm + ':' + ss],
+      ['配速', lastStats.pace],
+      ['路线点', String(points.length)]
+    ];
+    items.forEach((it, i) => {
+      const col = i % 2, row = Math.floor(i / 2);
+      const xx = pad + col * (W - pad * 2) / 2, yy = y0 + 90 + row * 130;
+      x.fillStyle = 'rgba(255,255,255,.45)'; x.font = '26px sans-serif'; x.fillText(it[0], xx, yy);
+      x.fillStyle = '#fff'; x.font = 'bold 52px -apple-system, sans-serif'; x.fillText(it[1], xx, yy + 58);
+    });
+
+    x.fillStyle = 'rgba(61,220,151,.9)'; x.font = 'bold 34px sans-serif';
+    x.fillText('林忆知遥', pad, H - pad);
+    x.fillStyle = 'rgba(255,255,255,.3)'; x.font = '22px sans-serif';
+    x.fillText(new Date().toLocaleString(), W - pad - 300, H - pad);
+
+    const url = c.toDataURL('image/png');
+    if (window.Android && Android.saveTrack) Android.saveTrack(url);
+  } catch (e) { console.log('export failed ' + e); }
+}
+
+function stopRun(){
+  if (running) exportTrack();
+  running = false;
+  uiPaused = false;
+  if (window.Android && Android.stop) Android.stop();
+  paintRunButton();
+  redraw();
+}
+$('startBtn').addEventListener('click', () => {
+  if (!running) { startRun(); return; }
+  if (uiPaused) {
+    if (window.Android && Android.setPaused) Android.setPaused(false);
+    uiPaused = false; paintRunButton(); return;
+  }
+  stopRun();
+});
+$('undoBtn').addEventListener('click', () => { if (!running && points.length) { points.pop(); redraw(); } });
+$('clearBtn').addEventListener('click', () => { if (!running) { points = []; redraw(); } });
+
+
+/* ---------- 弹层开合动画 ---------- */
+function openModal(){
+  const m = $('modal'), pn = $('panel');
+  pn.style.transition = 'none'; pn.style.transform = 'translateY(100%)';
+  m.classList.add('show');
+  requestAnimationFrame(() => {
+    pn.style.transition = 'transform .26s cubic-bezier(.2,.8,.2,1)';
+    pn.style.transform = 'translateY(0)';
+  });
+}
+function closeModal(){
+  const m = $('modal'), pn = $('panel');
+  pn.style.transition = 'transform .22s ease, opacity .22s ease';
+  pn.style.transform = 'translateY(100%)';
+  m.style.opacity = '0';
+  setTimeout(() => {
+    m.classList.remove('show');
+    pn.style.transform = ''; pn.style.transition = ''; m.style.opacity = '';
+  }, 210);
+}
+function openAbout(){
+  const a = $('aboutPage');
+  a.style.transition = 'none'; a.style.transform = 'translateX(100%)';
+  a.classList.add('show');
+  requestAnimationFrame(() => {
+    a.style.transition = 'transform .26s cubic-bezier(.2,.8,.2,1)';
+    a.style.transform = 'translateX(0)';
+  });
+}
+function closeAbout(){
+  const a = $('aboutPage');
+  a.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1)';
+  a.style.transform = 'translateX(100%)';
+  setTimeout(() => { a.classList.remove('show'); a.style.transform = ''; a.style.transition = ''; }, 220);
+}
+window.closeTopOverlay = function(){
+  const a = $('aboutPage'), m = $('modal');
+  if (a && a.classList.contains('show')) { closeAbout(); return true; }
+  if (m && m.classList.contains('show')) { closeModal(); return true; }
+  return false;
+};
+
+function closeWelcome(){
+  const w = $('welcome'), b = $('wBox');
+  b.style.transition = 'transform .2s ease, opacity .2s ease';
+  b.style.transform = 'scale(.94)'; b.style.opacity = '0';
+  w.style.transition = 'opacity .2s'; w.style.opacity = '0';
+  setTimeout(() => {
+    w.classList.remove('show');
+    b.style.transform = ''; b.style.opacity = ''; b.style.transition = '';
+    w.style.opacity = ''; w.style.transition = '';
+  }, 200);
+}
+
+/* ---------- 设置弹层 ---------- */
+
+$('setBtn').addEventListener('click', openModal);
+on('brandFab', 'click', openModal);
+on('locFab', 'click', () => {
+  const p = ($('dist').textContent !== '0' || running) ? me.getLatLng() : L.latLng(CAMPUS[0], CAMPUS[1]);
+  map.flyTo(p, Math.max(map.getZoom(), 17), {duration: .6});
+  me.setStyle({opacity: 1, fillOpacity: .95});
+  setTimeout(() => { if (!running) me.setStyle({opacity: 0, fillOpacity: 0}); }, 3500);
+});
+on('welcomeOk', 'click', closeWelcome);
+on('aboutBtn', 'click', openAbout);
+on('aboutBack', 'click', closeAbout);
+on('backBtn', 'click', closeModal);
+$('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+
+
+/* ---------- 手势：主卡片下拉收起 / 设置层下拉关闭 ---------- */
+(function(){
+  const sheet = $('sheet'), grip = $('sheetGrip');
+  let startY = 0, base = 0, maxOff = 0, dragging = false;
+
+  function maxOffset(){ return Math.max(80, sheet.offsetHeight - 96); }
+
+  grip.addEventListener('pointerdown', e => {
+    dragging = true; startY = e.clientY; base = sheet.style.transform ?
+      (parseFloat((sheet.style.transform.match(/-?\d+(\.\d+)?/) || [0])[0]) || 0) : 0;
+    maxOff = maxOffset();
+    sheet.style.transition = 'none';
+    grip.setPointerCapture(e.pointerId);
+  });
+  grip.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    let off = base + (e.clientY - startY);
+    off = Math.max(0, Math.min(maxOff, off));
+    sheet.style.transform = 'translateY(' + off + 'px)';
+  });
+  function endDrag(e){
+    if (!dragging) return;
+    dragging = false;
+    sheet.style.transition = 'transform .26s cubic-bezier(.2,.8,.2,1)';
+    const off = parseFloat((sheet.style.transform.match(/-?\d+(\.\d+)?/) || [0])[0]) || 0;
+    if (off > maxOff * 0.35) sheet.style.transform = 'translateY(' + maxOff + 'px)';
+    else sheet.style.transform = 'translateY(0px)';
+  }
+  grip.addEventListener('pointerup', endDrag);
+  grip.addEventListener('pointercancel', endDrag);
+
+  // 收起状态下点一下卡片可展开
+  sheet.addEventListener('click', e => {
+    const t = sheet.style.transform;
+    if (t && /translateY\((\d+(\.\d+)?)px\)/.test(t) && parseFloat(RegExp.$1) > 10) {
+      sheet.style.transition = 'transform .26s cubic-bezier(.2,.8,.2,1)';
+      sheet.style.transform = 'translateY(0px)';
+    }
+  }, true);
+
+  // 设置层：抓手下拉关闭
+  const modal = $('modal'), panel = $('panel'), handle = $('panelDrag');
+  let s2 = 0, d2 = false;
+  handle.addEventListener('pointerdown', e => {
+    d2 = true; s2 = e.clientY; panel.style.transition = 'none'; handle.setPointerCapture(e.pointerId);
+  });
+  handle.addEventListener('pointermove', e => {
+    if (!d2) return;
+    const dy = Math.max(0, e.clientY - s2);
+    panel.style.transform = 'translateY(' + dy + 'px)';
+    modal.style.opacity = String(Math.max(0.25, 1 - dy / 320));
+  });
+  function end2(){
+    if (!d2) return;
+    d2 = false;
+    panel.style.transition = 'transform .22s ease';
+    modal.style.opacity = '';
+    const m = panel.style.transform.match(/(\d+(\.\d+)?)px/);
+    const dy = m ? parseFloat(m[1]) : 0;
+    if (dy > 90) { panel.style.transform = ''; modal.classList.remove('show'); }
+    else { panel.style.transform = ''; }
+  }
+  handle.addEventListener('pointerup', end2);
+  handle.addEventListener('pointercancel', end2);
+})();
+
+
+/* ---------- 边缘滑动返回 + 预览（可预测式返回） ---------- */
+(function(){
+  let drag = null;
+
+  function overlayPage(){
+    const a = $('aboutPage');
+    if (a && a.classList.contains('show')) return a;
+    return null;
+  }
+
+  document.addEventListener('pointerdown', e => {
+    const page = overlayPage();
+    if (!page) return;
+    if (e.clientX > 28) return;              // 只从左边 28px 内起手
+    drag = { page: page, x0: e.clientX, dx: 0 };
+    page.style.transition = 'none';
+  }, true);
+
+  document.addEventListener('pointermove', e => {
+    if (!drag) return;
+    drag.dx = Math.max(0, e.clientX - drag.x0);
+    const p = drag.dx / window.innerWidth;
+    drag.page.style.transform = 'translateX(' + drag.dx + 'px)';
+    drag.page.style.boxShadow = '0 0 40px rgba(0,0,0,' + Math.min(.6, p * .9) + ')';
+  }, true);
+
+  function finish(){
+    if (!drag) return;
+    const page = drag.page, dx = drag.dx;
+    drag = null;
+    page.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s';
+    if (dx > Math.min(140, window.innerWidth * 0.28)) {
+      page.style.transform = 'translateX(100%)';
+      setTimeout(() => {
+        page.classList.remove('show');
+        page.style.transform = '';
+        page.style.boxShadow = '';
+      }, 200);
+    } else {
+      page.style.transform = 'translateX(0)';
+      page.style.boxShadow = '0 0 40px rgba(0,0,0,0)';
+    }
+  }
+  document.addEventListener('pointerup', finish, true);
+  document.addEventListener('pointercancel', finish, true);
+})();
+
+/* ---------- 状态轮询 ---------- */
+setInterval(() => {
+  if (running && startedAt) {
+    const s = Math.floor((Date.now() - startedAt) / 1000);
+    $('time').textContent = String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+  }
+  if (!window.Android || !Android.state) return;
+  try {
+    const st = JSON.parse(Android.state());
+    if (st) {
+      const act = !!st.active, pz = !!st.paused;
+      if (act !== running || pz !== uiPaused) {
+        running = act; uiPaused = pz;
+        if (running && !startedAt) startedAt = Date.now();
+        paintRunButton();
+        redraw();
+      }
+    }
+    if (st && st.lat) {
+      const g = wgsToGcj(st.lat, st.lng);
+      me.setLatLng([g[0], g[1]]);
+      updateCoordLine();
+      if (st.active) {
+        $('dist').textContent = Math.round(st.dist || 0);
+        lastStats.dist = st.dist || 0;
+        lastStats.pace = $('paceTxt').textContent.replace('/km','');
+        lastStats.sec = startedAt ? Math.floor((Date.now() - startedAt) / 1000) : 0;
+        if (st.cadence) $('cad').textContent = Math.round(st.cadence);
+        if (running) { const g2 = wgsToGcj(st.lat, st.lng); map.panTo([g2[0], g2[1]], {animate:true, duration:.6}); }
+      }
+    }
+  } catch (e) {}
+}, 1000);
+
+/* ---------- 初始化 ---------- */
+window.addEventListener('load', () => {
+  const theme = localStorage.getItem('tsursport.theme') || 'light';
+  document.body.classList.toggle('light', theme === 'light');
+  document.querySelectorAll('#themeSeg button').forEach(x => x.classList.toggle('on', x.dataset.t === theme));
+  if (localStorage.getItem('tsursport.baidu') === '1') {
+    alignBaidu = true;
+    document.querySelectorAll('#baiduSeg button').forEach(x => x.classList.toggle('on', x.dataset.b === '1'));
+  }
+  const sv = localStorage.getItem('tsursport.save');
+  if (sv === '0') {
+    saveRoute = false;
+    document.querySelectorAll('#saveSeg button').forEach(x => x.classList.toggle('on', x.dataset.v === '0'));
+  }
+  const saved = localStorage.getItem('tsursport.route');
+  if (saved && saveRoute) {
+    try { points = JSON.parse(saved) || []; } catch (e) { points = []; }
+    redraw();
+  }
+  setTimeout(() => {
+    if (window.Android && Android.mockReady && !Android.mockReady()) {
+      showHint('还没被选为「模拟位置信息应用」，开始会失败 → 设置 · 开发者选项 · 选择模拟位置信息应用 · 选 Tsursport');
+    }
+  }, 800);
+  pushRealism(); pushCadence(); pushRouteToNative();
+  paintRunButton();
+  if (window.Android && Android.setTheme)
+    Android.setTheme(localStorage.getItem('tsursport.theme') || 'light');
+  // 首次启动：自动打开设置弹层并展开使用须知（只一次）
+  if (!localStorage.getItem('tsursport.noticeShown')) {
+    setTimeout(() => {
+      $('welcome').classList.add('show');
+      localStorage.setItem('tsursport.noticeShown', '1');
+    }, 500);
+  }
+
+
+  // 首次打开自动展示完整「使用须知」，只出现一次；之后从 设置 → 使用须知 打开
+});
+</script>
+</body>
+</html>
