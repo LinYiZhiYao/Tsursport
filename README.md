@@ -313,3 +313,8 @@ Tsursport/
 [MIT](LICENSE) © 林忆知遥
 
 > 本项目仅用于自有设备上的定位与运动数据调试、演示。请在遵守所在平台规则的前提下使用。
+## 相关项目
+
+- **iOS 版**：[LinYiZhiYao/Tsursport-iOS](https://github.com/LinYiZhiYao/Tsursport-iOS)
+  iOS 不允许普通 App 改定位，那个版本走的是「电脑通过苹果调试通道注入位置」的方案，
+  同样带地图画路线、配速控制与设备向导。
